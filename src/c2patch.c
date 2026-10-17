@@ -97,7 +97,16 @@ void c2_patch_init(HINSTANCE dll)
     }
     strcpy(g_log, g_ini);
     strcat(g_ini, "c2patch.ini");
-    strcat(g_log, "c2patch.log");
+    {
+        char unit[8];
+        if (GetEnvironmentVariableA("C2_UNIT", unit, sizeof unit)) {
+            strcat(g_log, "c2patch_unit");
+            strcat(g_log, unit);
+            strcat(g_log, ".log");
+        } else {
+            strcat(g_log, "c2patch.log");
+        }
+    }
     DeleteFileA(g_log);
 
     if (!exe_is_supported()) {
@@ -109,6 +118,7 @@ void c2_patch_init(HINSTANCE dll)
         return;
     }
     c2_log("c2patch: CARMA2_HW.EXE recognised, installing");
+    c2_nettest_install();
     c2_render_install();
     c2_ai_install();
     c2_net_install();

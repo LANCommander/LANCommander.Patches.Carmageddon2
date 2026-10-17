@@ -31,7 +31,13 @@ __declspec(dllexport) HRESULT WINAPI DirectInputCreateA(HINSTANCE inst, DWORD ve
             return E_FAIL;
         }
     }
-    return real_DirectInputCreateA(inst, ver, out, outer);
+    {
+        HRESULT hr = real_DirectInputCreateA(inst, ver, out, outer);
+        if (hr == 0 && out) {
+            c2_nettest_wrap_dinput(*out);
+        }
+        return hr;
+    }
 }
 
 BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)

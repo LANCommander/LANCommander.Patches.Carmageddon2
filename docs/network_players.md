@@ -4,6 +4,29 @@
 I swept every instruction for comparisons of `gNumber_of_net_players` (0x74b7d4) or
 `num_players` (+0x34 of `tNet_game_details`) against small immediates. Only the 12 gates below exist.
 
+## Tested: 12 players work (tools/mp.py, 2026-10-17)
+Twelve instances on one PC (nettest harness, IPX loopback) were tested end to end:
+- **Lobby:** host + 11 joins; the NetSync list shows all 12; the lobby **auto-starts when the 12th player joins** (0x473c78).
+- **Race start:** StartRace with 12 racers.
+- **Starts:** 12 grid slots in Sudden Death on the city track, and 12 scattered starts in THE ARENA.
+- **HUD:** a 12-row scoreboard that fits.
+- **Racing:** minutes of bumper cars at 60, 10 and 5 fps; no instance died.
+
+### Bug: crush-list overflow with 8+ players (fixed by `[Net] FixCrushListOverflow`)
+`gCrush_lists[8]` (0x6796c8, 0x158 each) collects the cars that took crush damage this frame. It is cleared once per
+rendered frame by CrushBendFlapRend (0x436170).
+- **Add path** (FUN_0042d400): searches up to 8 slots and may fill slot 7 (`cmp edi,8` @0x42d714).
+- **Consumers:** the loop @0x4361b9 and the clear loop @0x4363d2 walk until `car_spec == NULL` with **no bound**.
+- **With 8 slots used:**
+  - the consumers run into `gSplit_car_collision_infos` (heap ptr) and `gMin_bend_angle` (30.0f, an item count of 0x41f00000);
+  - the clear loop zeroes `gSplit_car_collision_infos`;
+  - the next add's search (edi=8) treats those globals as an existing entry and writes past the array.
+- **Measured** (nettest probe at 0x42d714): only the **host** processes crush for many cars. In head-on pile-ups of 12 cars in
+  THE ARENA it reached 5 distinct cars in one frame at 10 fps; clients stayed at 2-3. Lower frame rates (period-correct
+  hardware) put more physics steps into each frame, so 8 is reachable in big games, and it takes down the host.
+  AI cars far from the camera are skipped, so single player effectively never gets there.
+- **Fix:** limit the list to 7 entries (`cmp edi,7`), so slot 7 always stays NULL. An 8th car's crush waits one frame.
+
 | addr | where | what |
 |---|---|---|
 | 0x4a08a4 | ReceivedJoin (inlined in ReceivedMessage 0x4a0260) | host rejects a joiner if `num_players >= 12` (reject path at 0x4a0b05) |

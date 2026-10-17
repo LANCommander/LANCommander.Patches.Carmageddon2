@@ -18,7 +18,16 @@ int c2_call(uint32_t from, const void *to);   /* E8 rel32 at from */
 int c2_ini_int(const char *section, const char *key, int def);
 float c2_ini_float(const char *section, const char *key, float def);
 
+void *c2_hook_import(const char *dll, const char *name, void *replacement);  /* returns the old target */
+
 /* patch modules */
+extern int c2_unit;   /* nettest unit (C2_UNIT), 0 when not testing */
+void c2_nettest_install(void);
+void c2_probe_install(void);
+extern volatile int c2_probe_crush_max, c2_probe_crush_slot7;
+extern int c2_crush_limit;
+void c2_nettest_wrap_dinput(void *direct_input);
+void c2_nettest_input_start(const char *game_dir);
 void c2_render_install(void);
 void c2_ai_install(void);
 void c2_net_install(void);
