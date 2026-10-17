@@ -170,6 +170,15 @@ static void read_commands(void)
         } else if (sscanf(line, "slow %d", &hold) == 1) {
             g_slow_ms = hold;
             c2_log("input: slow %d ms per frame", hold);
+        } else if (strncmp(line, "crushfill", 9) == 0) {
+            /* the state 8 crushed cars in one frame leave behind: all 8 gCrush_lists slots used
+               (car = our own car, no items). Test only: shows what the consumers do with it. */
+            int i;
+            for (i = 0; i < 8; i++) {
+                *(uint32_t *)(0x6796c8 + i * 0x158) = 0x75bb80 + 172;   /* &gProgram_state.current_car */
+                *(int *)(0x6796c8 + i * 0x158 + 4) = 0;
+            }
+            c2_log("input: crush list filled with 8 entries");
         } else if (strncmp(line, "text ", 5) == 0) {
             char *c;
             for (c = line + 5; *c && *c != '\n' && *c != '\r'; c++) {

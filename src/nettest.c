@@ -167,6 +167,13 @@ static BOOL WINAPI hk_SetForegroundWindow(HWND hwnd)
     return TRUE;
 }
 
+static BOOL WINAPI hk_GetCursorPos(LPPOINT p)
+{
+    p->x = 0;      /* the real mouse is shared by every instance: keep it still for the game */
+    p->y = 0;
+    return TRUE;
+}
+
 static HWND WINAPI hk_FindWindowA(LPCSTR cls, LPCSTR title)
 {
     (void)cls;
@@ -270,6 +277,7 @@ void c2_nettest_install(void)
     c2_probe_install();
     c2_hook_import("USER32.dll", "FindWindowA", hk_FindWindowA);
     c2_hook_import("USER32.dll", "GetForegroundWindow", hk_GetForegroundWindow);
+    c2_hook_import("USER32.dll", "GetCursorPos", hk_GetCursorPos);
     c2_hook_import("USER32.dll", "SetForegroundWindow", hk_SetForegroundWindow);
     real_RegisterClassA = c2_hook_import("USER32.dll", "RegisterClassA", hk_RegisterClassA);
     {
