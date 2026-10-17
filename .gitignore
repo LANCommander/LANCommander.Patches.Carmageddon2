@@ -1,0 +1,11 @@
+# game files (copyrighted, never committed)
+/Game/
+/bin/
+# generated
+/build/
+/ghidra/*.lock*
+/ghidra/*.rep/
+/ghidra/*.gpr
+__pycache__/
+# reference decomp clone (github.com/Link4Electronics/Carpocalypse2)
+/extern/
