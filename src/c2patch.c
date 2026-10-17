@@ -79,6 +79,11 @@ float c2_ini_float(const char *section, const char *key, float def)
     return buf[0] ? (float)atof(buf) : def;
 }
 
+void c2_ini_write(const char *section, const char *key, const char *value)
+{
+    WritePrivateProfileStringA(section, key, value, g_ini);
+}
+
 static int exe_is_supported(void)
 {
     const IMAGE_DOS_HEADER *dos = (const IMAGE_DOS_HEADER *)GetModuleHandleA(NULL);
@@ -122,4 +127,5 @@ void c2_patch_init(HINSTANCE dll)
     c2_render_install();
     c2_ai_install();
     c2_net_install();
+    c2_netrate_install();
 }

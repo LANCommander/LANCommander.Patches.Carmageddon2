@@ -27,6 +27,26 @@ rendered frame by CrushBendFlapRend (0x436170).
   AI cars far from the camera are skipped, so single player effectively never gets there.
 - **Fix:** limit the list to 7 entries (`cmp edi,7`), so slot 7 always stays NULL. An 8th car's crush waits one frame.
 
+## Update rate (`src/netrate.c`)
+- **Physics** runs at 25 Hz: PHILDoPhysics (0x4b6650) snaps `gPHIL_last_physics_tick` (0x74a5ec) to 40 ms and
+  steps `+= 0x28` (@0x4b6ae2).
+- **When car data goes out:** ApplyPhysicsToCars (0x416340) calls TimeToSendData (0x4978d0) once per frame after
+  the physics steps, then SendCarData (0x497900) + SendMines.
+  - **Stock gate:** send when `tick >= last + 0x50` (80 ms, 12.5 Hz), or when `tick <= last`.
+  - **Stock duplicates:** that second case fires on every frame without a new physics step, resending identical data
+    with the same timestamp. Measured: about 30 packets/s at 60 fps for 12.5 distinct updates/s. Below 12.5 fps,
+    it sends once per frame.
+- **Who sends what:** the host broadcasts every player's car (plus a 0x12 race-time chunk); a client sends only
+  its own car. So the host's rate decides how smoothly everyone sees the other players.
+- **Settings** (`[Net]`):
+  - `SendIntervalMs`: 40 / 80 / 120 measured 25.0 / 12.6 / 8.3 sends/s.
+  - `SkipDuplicateSends=1`: drops the duplicates.
+  - **In game:** NET GAME OPTIONS has an UPDATE RATE row (25 HZ / 12 HZ / 8 HZ, radio group 8, items 31-34; OK/CANCEL
+    moved to 35/36; rows re-spaced from 28 to 24 px), added at runtime by hooking the screen's create callback
+    (`gFrontend_NETWORK_OPTIONS`+0x108, before FRONTEND_CreateMenu builds the text actors). OK saves to c2patch.ini.
+  - The setting is per machine: `tNet_game_options` has no spare field to carry it to clients.
+- **Stress test:** 12 players at 25 Hz in THE ARENA under bumper-car chaos, no deaths.
+
 | addr | where | what |
 |---|---|---|
 | 0x4a08a4 | ReceivedJoin (inlined in ReceivedMessage 0x4a0260) | host rejects a joiner if `num_players >= 12` (reject path at 0x4a0b05) |

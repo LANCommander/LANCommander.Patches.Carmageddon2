@@ -200,8 +200,8 @@ static DWORD WINAPI input_thread(LPVOID arg)
     for (;;) {
         if (GetTickCount() - last_log > 5000) {
             last_log = GetTickCount();
-            c2_log("input: GetDeviceState calls %ld, keyboard %ld (last hr %08lx); crush list max slot %d, slot 7 filled %d times",
-                   g_calls, g_kbd_calls, g_last_hr, c2_probe_crush_max, c2_probe_crush_slot7);
+            c2_log("input: GetDeviceState calls %ld, keyboard %ld (last hr %08lx); crush list max slot %d, slot 7 filled %d times; car-data sends %ld at %lu ms",
+                   g_calls, g_kbd_calls, g_last_hr, c2_probe_crush_max, c2_probe_crush_slot7, c2_netrate_sends, (unsigned long)GetTickCount());
         }
         read_commands();
         if (g_q_head != g_q_tail) {
