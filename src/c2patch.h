@@ -33,6 +33,7 @@ void c2_render_install(void);
 void c2_ai_install(void);
 void c2_net_install(void);
 void c2_netrate_install(void);
+void c2_names_install(void);
 extern volatile long c2_netrate_sends;
 
 #define C2_ADDR(a) ((void *)(uintptr_t)(a))

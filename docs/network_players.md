@@ -80,3 +80,27 @@ rendered frame by CrushBendFlapRend (0x436170).
 6. Car storage `gNet_cars_storage_space` (0x761f00: 2000 pixelmaps/materials/models, 50 shade tables/sounds) may run out with more distinct cars.
 
 Realistic ceiling without a protocol redesign: **12**. With items 1-4, the UI tops out around 14.
+
+## Driver name length (`src/names.c`)
+- **Where the 8 comes from:** ToggleTyping (0x466ec0) inlines `StartGettingInputString(text, 8)`
+  (`mov [gFrontend_maximum_input_length], 8` @0x46701a). It is the only writer; the main menu and the network
+  screen's DRIVER field both use it. Typed characters come from WM_CHAR (gKeyboardBuffer); Backspace and Enter come
+  through the key array.
+- **Where the name is stored** (all hold 13 characters plus the terminator, or more):
+  - `gProgram_state.player_name[14]` (0x75d590, followed by `track_file_name`);
+  - `tSave_game.player_name[14]`;
+  - `tNet_game_player_info.player_name[32]` (what the network carries);
+  - `tCar_spec.driver_name[32]` (bounded memcpy in LoadCar);
+  - frontend item text[255].
+
+  Copies into display buffers are 128-256 bytes, and the taunt message checks `len <= 18`.
+- **Setting:** `[Player] MaxNameLength` (default 13, the most without moving `player_name`).
+- **Tested** with 13-character names (`WWWWWWWWWWWWW`, `Carmageddon13`, `Stainless1998`):
+  - typing stops at 13 and the next field is untouched;
+  - the name is saved to OPTIONS.TXT and reloaded;
+  - the network lobby shows the full names on every machine.
+
+  Cosmetic: the in-race scoreboard boxes and the PLAYER: status line clip long names by pixel width (8-10
+  characters show), and 13 W's run slightly past the main menu's panel edge.
+- `DefaultNetName` (0x49bd10) still asks for the Windows user name with a 32-byte limit into the 14-byte field,
+  then cuts it to 9 characters (an existing, unrelated overflow on first run).

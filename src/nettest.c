@@ -239,6 +239,24 @@ static LONG WINAPI crash_filter(EXCEPTION_POINTERS *ep)
            ep->ExceptionRecord->NumberParameters >= 2 && ep->ExceptionRecord->ExceptionInformation[0] ? "write" : "read",
            ep->ExceptionRecord->NumberParameters >= 2 ? (unsigned long)ep->ExceptionRecord->ExceptionInformation[1] : 0,
            c->Eax, c->Ebx, c->Ecx, c->Edx, c->Esi, c->Edi, c->Ebp, c->Esp);
+    {
+        /* likely return addresses: stack words pointing into the exe's .text */
+        const uint32_t *sp = (const uint32_t *)(uintptr_t)c->Esp;
+        char line[512];
+        int i, n = 0, len = 0;
+        line[0] = '\0';
+        for (i = 0; i < 512 && n < 24; i++) {
+            MEMORY_BASIC_INFORMATION mbi;
+            if (!VirtualQuery(sp + i, &mbi, sizeof mbi) || mbi.State != MEM_COMMIT) {
+                break;
+            }
+            if (sp[i] >= 0x401000 && sp[i] < 0x58808c) {
+                len += sprintf(line + len, " %08lx", (unsigned long)sp[i]);
+                n++;
+            }
+        }
+        c2_log("CRASH stack:%s", line);
+    }
     TerminateProcess(GetCurrentProcess(), 0xc2c2);
     return EXCEPTION_EXECUTE_HANDLER;
 }

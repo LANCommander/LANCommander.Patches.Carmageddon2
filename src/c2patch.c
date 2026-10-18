@@ -128,4 +128,5 @@ void c2_patch_init(HINSTANCE dll)
     c2_ai_install();
     c2_net_install();
     c2_netrate_install();
+    c2_names_install();
 }
