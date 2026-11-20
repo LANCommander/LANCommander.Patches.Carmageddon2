@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            V="${GITHUB_REF#refs/tags/v}"
+          else
+            V="$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Building c2patch $V"
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          install: mingw-w64-i686-gcc
+
+      - name: Build
+        shell: msys2 {0}
+        run: CARMA2_VERSION="${{ steps.version.outputs.version }}" sh build.sh
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory out -Force | Out-Null
+          $common = @('dist/c2patch.ini', 'README.md', 'LICENSE')
+
+          function Pack($name, $files) {
+            $stage = "stage/$name"
+            New-Item -ItemType Directory $stage -Force | Out-Null
+            foreach ($f in $files) { Copy-Item $f $stage -Recurse -Force }
+            Compress-Archive -Path "$stage/*" -DestinationPath "out/$name.zip" -Force
+          }
+
+          Pack "carma2patch-$ver-dinput" (@('build/dinput.dll') + $common)
+          Pack "carma2patch-$ver-asi"    (@('build/carma2patch.asi') + $common)
+
+          # Interposer plugin drops into .interposer\Plugins\
+          $ip = "stage/interposer/.interposer/Plugins"
+          New-Item -ItemType Directory $ip -Force | Out-Null
+          Copy-Item 'build/LANCommander.Interposer.Plugin.Carmageddon2.dll' $ip -Force
+          Copy-Item $common 'stage/interposer' -Force
+          Compress-Archive -Path 'stage/interposer/*' `
+            -DestinationPath "out/LANCommander.Interposer.Plugin.Carmageddon2-$ver.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carma2patch-${{ steps.version.outputs.version }}
+          path: out/*.zip
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          [[ "$GITHUB_REF_NAME" == *-* ]] && PRERELEASE="--prerelease"
+          gh release create "$GITHUB_REF_NAME" out/* --generate-notes --draft $PRERELEASE

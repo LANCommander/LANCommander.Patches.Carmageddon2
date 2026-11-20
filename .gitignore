@@ -9,3 +9,9 @@
 __pycache__/
 # reference decomp clone (github.com/Link4Electronics/Carpocalypse2)
 /extern/
+# local research tooling (kept on disk, not published)
+/CLAUDE.md
+/.mcp.json
+/ghidra_scripts/
+/scripts/
+/tools/

@@ -2,4 +2,3 @@ LIBRARY dinput.dll
 EXPORTS
     DirectInputCreateA@16 = DirectInputCreateA@16
     DirectInputCreateA = DirectInputCreateA@16
-    InterposerPluginInit = InterposerPluginInit@4

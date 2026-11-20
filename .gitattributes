@@ -1,0 +1,17 @@
+# Normalize line endings: text files are LF in the repo, checked out native on Windows.
+* text=auto
+
+# Scripts and C sources must stay LF so MSYS2 / CI run them.
+*.sh    text eol=lf
+*.c     text eol=lf
+*.h     text eol=lf
+*.def   text eol=lf
+*.ini   text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+
+# Binaries and game assets must not be touched.
+*.dll   binary
+*.asi   binary
+*.exe   binary
+*.icd   binary

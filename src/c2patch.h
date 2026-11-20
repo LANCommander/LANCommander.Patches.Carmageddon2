@@ -14,12 +14,19 @@ int c2_write32(uint32_t addr, uint32_t value);
 int c2_jmp(uint32_t from, const void *to);    /* E9 rel32 at from */
 int c2_call(uint32_t from, const void *to);   /* E8 rel32 at from */
 
-/* settings: c2patch.ini next to this DLL; as an Interposer plugin, then Config.yml Plugins.c2patch.<section>.<key> */
+/* settings: c2patch.ini next to this DLL; as an Interposer plugin, then Config.yml Plugins.Carmageddon2.<section>.<key> */
 int c2_ini_int(const char *section, const char *key, int def);
 float c2_ini_float(const char *section, const char *key, float def);
 void c2_ini_write(const char *section, const char *key, const char *value);
 
 void *c2_hook_import(const char *dll, const char *name, void *replacement);  /* returns the old target */
+
+/* DirectInput wrapper shared by the entry points (dinput_wrap.c): wraps the created device so the
+ * gamepad and nettest modules see it. The dinput.dll proxy forwards its export here after pointing
+ * it at the system DLL; the Interposer plugin and the .asi hook the game's import table instead. */
+HRESULT WINAPI c2_dinput_create(HINSTANCE inst, DWORD ver, void **out, void *outer);
+void c2_dinput_set_real(void *direct_input_create_a);   /* proxy: the system dinput.dll's export */
+void c2_dinput_install_iat(void);                       /* plugin / asi: hook DINPUT.dll in the IAT */
 
 /* patch modules */
 extern int c2_unit;   /* nettest unit (C2_UNIT), 0 when not testing */

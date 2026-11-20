@@ -7,6 +7,10 @@
 
 #define C2_TIMESTAMP 0x3662d4f7u   /* CARMA2_HW.EXE (GOG, SafeDisc removed) */
 
+#ifndef C2PATCH_VERSION
+#define C2PATCH_VERSION "dev"      /* overridden by build.sh from CARMA2_VERSION */
+#endif
+
 static char g_ini[MAX_PATH];
 static char g_log[MAX_PATH];
 
@@ -15,12 +19,12 @@ typedef void (*InterposerLog_fn)(const wchar_t *verb, const wchar_t *message);
 typedef BOOL (*InterposerRegisterPluginConfig_fn)(const wchar_t *plugin, const wchar_t *yaml);
 static InterposerLog_fn g_ilog;
 
-/* Plugins.c2patch defaults for Config.yml, generated from dist/c2patch.ini by build.sh */
+/* Plugins.Carmageddon2 defaults for Config.yml, generated from dist/c2patch.ini by build.sh */
 static const wchar_t g_yaml_defaults[] =
 #include "c2patch_yaml.h"
     ;
 
-/* Plugins.c2patch.<section>.<key> from Config.yml. Read directly rather than through
+/* Plugins.Carmageddon2.<section>.<key> from Config.yml. Read directly rather than through
  * InterposerGetConfigString: as of Interposer 1.2.1 only its first call succeeds (its path walk
  * does `node = node[seg]`, and yaml-cpp's Node assignment rewrites the root it was copied from).
  * Handles the block-style maps Interposer writes, with comments and quoted scalars. */
@@ -75,7 +79,7 @@ static void yml_line(char *line, struct yml_map *stack, int *depth)
             lstrcpynA(stack[*depth].name, key, sizeof stack[0].name);
             (*depth)++;
         }
-    } else if (*depth == 3 && !strcmp(stack[0].name, "Plugins") && !strcmp(stack[1].name, "c2patch")
+    } else if (*depth == 3 && !strcmp(stack[0].name, "Plugins") && !strcmp(stack[1].name, "Carmageddon2")
                && g_yml_count < (int)(sizeof g_yml / sizeof g_yml[0])) {
         struct yml_setting *s = &g_yml[g_yml_count++];
         lstrcpynA(s->section, stack[2].name, sizeof s->section);
@@ -136,7 +140,7 @@ void c2_log(const char *fmt, ...)
     if (g_ilog) {
         wchar_t w[1024];
         if (MultiByteToWideChar(CP_ACP, 0, line, -1, w, 1024)) {
-            g_ilog(L"C2PATCH", w);
+            g_ilog(L"CARMA2", w);
         }
     }
 }
@@ -245,7 +249,7 @@ void c2_patch_init(HINSTANCE dll, HMODULE interposer)
             GetProcAddress(interposer, "InterposerRegisterPluginConfig");
         g_ilog = (InterposerLog_fn)(void (*)(void))GetProcAddress(interposer, "InterposerLog");
         if (reg) {
-            reg(L"c2patch", g_yaml_defaults);   /* writes them to Config.yml on the first run */
+            reg(L"Carmageddon2", g_yaml_defaults);   /* writes them to Config.yml on the first run */
         }
         yml_load(interposer);
     }
@@ -267,6 +271,7 @@ void c2_patch_init(HINSTANCE dll, HMODULE interposer)
         }
     }
     DeleteFileA(g_log);
+    c2_log("c2patch %s", C2PATCH_VERSION);
 
     if (!exe_is_supported()) {
         c2_log("c2patch: not the supported CARMA2_HW.EXE; no patches applied");
