@@ -81,6 +81,7 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           PRERELEASE=""
           [[ "$GITHUB_REF_NAME" == *-* ]] && PRERELEASE="--prerelease"
