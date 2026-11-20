@@ -1,0 +1,3 @@
+LIBRARY LANCommander.Interposer.Plugin.Carmageddon2.dll
+EXPORTS
+    InterposerPluginInit = InterposerPluginInit@4
