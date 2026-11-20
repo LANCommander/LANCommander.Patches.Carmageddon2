@@ -6,6 +6,7 @@
  *     tap <DIK>[,<DIK>...] [hold ms]  press (up to 4 keys together) and release; queued, 100 ms gap
  *     text <ascii>                  types letters/digits/space (shift not supported)
  *     slow <ms>                     sleep this long every frame (emulates a slow PC; 0 = off)
+ *     pad b|a <index> <value>       SDL test gamepad (env C2_PAD=1): button 0/1, axis -32768..32767
  */
 #include <stdio.h>
 #include <string.h>
@@ -73,7 +74,7 @@ static void patch_vtable(void **vtbl, int slot, void *fn, void **old)
 static HRESULT WINAPI hk_CreateDevice(void *di, const GUID *guid, void **out, void *outer)
 {
     HRESULT hr = real_CreateDevice(di, guid, out, outer);
-    if (hr == 0 && *out) {
+    if (hr == 0 && *out && !c2_gamepad_is_virtual(guid)) {
         void **vtbl = *(void ***)*out;
         patch_vtable(vtbl, 9, hk_GetDeviceState, (void **)&real_GetDeviceState);
         patch_vtable(vtbl, 13, hk_SetCooperativeLevel, (void **)&real_SetCooperativeLevel);
@@ -91,7 +92,11 @@ static EnumCb g_enum_cb;
 static BOOL CALLBACK filter_cb(const void *inst, void *ref)
 {
     DWORD type = *(const DWORD *)((const char *)inst + 4 + 16 + 16);  /* DIDEVICEINSTANCEA.dwDevType */
-    if ((type & 0xff) == 4 || (type & 0xff) == 5) {                  /* DIDEVTYPE_JOYSTICK / _DEVICE */
+    if (c2_gamepad_is_virtual((const char *)inst + 4) && GetEnvironmentVariableA("C2_PAD", NULL, 0)) {
+        return g_enum_cb(inst, ref);                                  /* the SDL device, for C2_PAD tests */
+    }
+    if (((type & 0xff) == 4 || (type & 0xff) == 5)                   /* DIDEVTYPE_JOYSTICK / _DEVICE */
+        && !GetEnvironmentVariableA("C2_NOHIDE", NULL, 0)) {          /* C2_NOHIDE: also let real pads through */
         return TRUE;
     }
     return g_enum_cb(inst, ref);
@@ -167,6 +172,10 @@ static void read_commands(void)
             push4(d, hold);
         } else if (sscanf(line, "tap %x %d", &k[0], &hold) >= 1) {
             push((unsigned char)k[0], hold);
+        } else if (sscanf(line, "pad %c %u %d", (char *)&k[0], &k[1], &hold) == 3) {
+            if (!c2_gamepad_test(k[0] == 'a', (int)k[1], hold)) {
+                c2_log("input: no test pad (set C2_PAD=1)");
+            }
         } else if (sscanf(line, "slow %d", &hold) == 1) {
             g_slow_ms = hold;
             c2_log("input: slow %d ms per frame", hold);
